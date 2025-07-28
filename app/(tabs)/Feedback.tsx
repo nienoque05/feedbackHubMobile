@@ -1,11 +1,11 @@
 import { AuthContext } from "@/contexts/AuthContext";
 import { db } from "@/services/firebaseConnection";
+import { Ionicons } from "@expo/vector-icons";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "expo-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
-
 import {
   ActivityIndicator,
   Alert,
@@ -24,7 +24,6 @@ const schema = yup.object({
     .min(10, "Mínimo 10 caracteres"),
   rating: yup
     .number()
-    .typeError("Nota precisa ser um número")
     .required("Nota é obrigatória")
     .min(1, "Nota mínima é 1")
     .max(5, "Nota máxima é 5"),
@@ -54,7 +53,7 @@ export default function FeedbackForm({ onSuccess }: FeedbackFormProps) {
     resolver: yupResolver(schema),
     defaultValues: {
       comment: "",
-      rating: undefined,
+      rating: 0,
     },
   });
 
@@ -64,12 +63,14 @@ export default function FeedbackForm({ onSuccess }: FeedbackFormProps) {
   }, [register]);
 
   const onSubmit = async (data: FormData) => {
-    if (!user?.uid) return Alert.alert("Erro", "Usuário não autenticado");
+    if (!user?.uid) {
+      return Alert.alert("Erro", "Usuário não autenticado");
+    }
 
     try {
       await addDoc(collection(db, "feedbacks"), {
         comment: data.comment,
-        rating: Number(data.rating),
+        rating: data.rating,
         userId: user.uid,
         userName: user.name || "Anônimo",
         createdAt: serverTimestamp(),
@@ -106,14 +107,21 @@ export default function FeedbackForm({ onSuccess }: FeedbackFormProps) {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Nota (1 a 5)</Text>
-          <TextInput
-            placeholder="Digite a nota"
-            style={styles.input}
-            keyboardType="numeric"
-            onChangeText={(text) => setValue("rating", Number(text))}
-            value={watch("rating")?.toString() || ""}
-          />
+          <Text style={styles.label}>Nota</Text>
+          <View style={styles.starsContainer}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <TouchableOpacity
+                key={value}
+                onPress={() => setValue("rating", value)}
+              >
+                <Ionicons
+                  name={value <= watch("rating") ? "star" : "star-outline"}
+                  size={32}
+                  color="#FFD700"
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
           {errors.rating && (
             <Text style={styles.errorText}>{errors.rating.message}</Text>
           )}
@@ -130,6 +138,7 @@ export default function FeedbackForm({ onSuccess }: FeedbackFormProps) {
             <Text style={styles.buttonText}>Enviar</Text>
           )}
         </TouchableOpacity>
+
         <Text onPress={() => router.push("/Home")} style={styles.buttonReturn}>
           Cancelar
         </Text>
@@ -173,6 +182,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#fff",
   },
+  starsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
   errorText: {
     color: "#e63946",
     fontSize: 13,
@@ -193,5 +207,7 @@ const styles = StyleSheet.create({
     color: "#000",
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
+    marginTop: 12,
   },
 });
