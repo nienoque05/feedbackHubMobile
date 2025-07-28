@@ -21,7 +21,7 @@ const schema = yup.object({
   comment: yup
     .string()
     .required("Comentário é obrigatório")
-    .min(5, "Mínimo 5 caracteres"),
+    .min(10, "Mínimo 10 caracteres"),
   rating: yup
     .number()
     .typeError("Nota precisa ser um número")
